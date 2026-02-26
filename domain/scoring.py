@@ -138,7 +138,7 @@ def operational_complexity(
         listing_score = log_score(active_listings, low = 1, high = 30, missing = 0.0)
 
     # More floorplans means more complexity, but should saturate above 12.
-    floorplan_score = log_score(floorplan_count, low = 1, high = 12, missing = 3.0)
+    floorplan_score = log_score(floorplan_count, low = 1, high = 12, missing = 0.0)
 
     # PMS vendor detection implies software maturity and possible integration readiness.
     pms_score = 1.0 if detected_pms_vendor else 0.0
@@ -147,8 +147,10 @@ def operational_complexity(
     review_volume_score = log_score(review_count, low = 10, high = 500, missing = 0.0)
     
     # Complaint rate should matter only if there are enough reviews.
-    if review_count and review_count > 0:
-        complaint_score = linear_score(complaint_count/review_count, low = 0.05, high = 0.40, missing = 0.0)
+    reviews = safe_float(review_count)
+    complaints = safe_float(complaint_count)
+    if reviews and reviews > 0 and complaints is not None:
+        complaint_score = linear_score(complaints / reviews, low = 0.05, high = 0.40, missing = 0.0)
     else:
         complaint_score = 0.0
         
