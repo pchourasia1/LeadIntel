@@ -1,7 +1,9 @@
 import os
 import sys
+import altair as alt
 import pandas as pd
 import streamlit as st
+from datetime import date
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -12,6 +14,7 @@ from scripts.misc import ensure_csv_schema
 from scripts.run_batch import process_row
 from clients import lead_cache, scrape_cache
 from scripts.run_batch import redraft_email
+from domain.scoring import LEAD_SCORE_WEIGHTS
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -47,6 +50,76 @@ def _bucket_color(bucket: str) -> str:
     }.get(bucket, "gray")
 
 
+BUCKETS = ["High", "Medium", "Low", "Needs Review"]
+
+
+def _score_breakdown_chart(breakdown: dict) -> alt.LayerChart:
+    """Points each component adds to the lead score, against its maximum (the weight)."""
+    rows = []
+    for key, weight in LEAD_SCORE_WEIGHTS.items():
+        value  = breakdown.get(key) or 0.0
+        points = value * weight * 100
+        rows.append({
+            "Component":  f"{key.replace('_', ' ').title()}  {points:.1f} / {weight * 100:.0f}",
+            "Score":      round(value, 2),
+            "Points":     round(points, 1),
+            "Max points": weight * 100,
+        })
+    data = pd.DataFrame(rows)
+
+    y = alt.Y("Component:N", sort=list(data["Component"]), title=None,
+              axis=alt.Axis(labelLimit=320, ticks=False, domain=False))
+    x_scale = alt.Scale(domain=[0, max(LEAD_SCORE_WEIGHTS.values()) * 100])
+    tooltip = [
+        alt.Tooltip("Component:N"),
+        alt.Tooltip("Score:Q", title="Component score (0–1)", format=".2f"),
+        alt.Tooltip("Points:Q", title="Points added", format=".1f"),
+        alt.Tooltip("Max points:Q", title="Max points", format=".0f"),
+    ]
+
+    # Gray track = maximum possible points, blue bar = points earned.
+    track = alt.Chart(data).mark_bar(color="#898781", opacity=0.2, size=14, cornerRadiusEnd=4).encode(
+        x=alt.X("Max points:Q", scale=x_scale, title="Points added to lead score (out of 100)"),
+        y=y,
+        tooltip=tooltip,
+    )
+    earned = alt.Chart(data).mark_bar(color="#2a78d6", size=14, cornerRadiusEnd=4).encode(
+        x=alt.X("Points:Q", scale=x_scale),
+        y=y,
+        tooltip=tooltip,
+    )
+    return (track + earned).properties(height=170).configure_axisY(grid=False)
+
+
+def _results_to_df(results: list) -> pd.DataFrame:
+    rows = []
+    for r in results:
+        li    = r["lead_info"]
+        feats = r["features"]
+        email = r.get("outreach_email") or {}
+        row = {
+            "Name":            r["row"].get("Name"),
+            "Email":           r["row"].get("Email"),
+            "Property Name":   r["property_name"],
+            "Full Address":    r["full_address"],
+            "Lead Score":      li["lead_score"],
+            "Priority Bucket": li["priority_bucket"],
+        }
+        for k, v in li["score_breakdown"].items():
+            row[k.replace("_", " ").title()] = v
+        row.update({
+            "Reasons":         "; ".join(li.get("reason_codes") or []),
+            "Units":           feats.get("unit_count"),
+            "Active Listings": feats.get("active_listings"),
+            "Reviews":         feats.get("review_count"),
+            "Manager":         feats.get("manager"),
+            "Email Subject":   email.get("subject"),
+            "Email Body":      email.get("body"),
+        })
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def _render_lead_card(result: dict) -> None:
     li = result["lead_info"]
     score  = li["lead_score"]
@@ -68,9 +141,8 @@ def _render_lead_card(result: dict) -> None:
 
         st.progress(min(max(score, 0.0), 1.0))
 
-        cols = st.columns(5)
-        for col, (k, v) in zip(cols, li["score_breakdown"].items()):
-            col.metric(k.replace("_", " ").title(), f"{v:.2f}")
+        st.markdown("**Score breakdown**")
+        st.altair_chart(_score_breakdown_chart(li["score_breakdown"]), width="stretch")
 
         st.markdown("**Why this score**")
         for r in li.get("reason_codes", []) or ["(no reasons generated)"]:
@@ -332,20 +404,50 @@ if st.session_state.lead_results:
     st.divider()
     st.subheader("Lead intelligence")
 
-    sort_mode = st.radio(
-        "Sort by",
-        ["Score (high → low)", "Score (low → high)", "Property name"],
-        horizontal=True,
-        index=0,
-    )
+    all_results = st.session_state.lead_results
 
-    results = list(st.session_state.lead_results)
+    # Summary bar
+    summary = st.columns(len(BUCKETS) + 1)
+    for col, bucket in zip(summary, BUCKETS):
+        n = sum(r["lead_info"]["priority_bucket"] == bucket for r in all_results)
+        col.metric(f":{_bucket_color(bucket)}[{bucket}]", n)
+    avg_score = sum(r["lead_info"]["lead_score"] for r in all_results) / len(all_results)
+    summary[-1].metric("Average score", f"{avg_score * 100:.1f}%")
+
+    f1, f2 = st.columns([3, 2])
+    with f1:
+        selected_buckets = st.pills(
+            "Show priority",
+            BUCKETS,
+            selection_mode="multi",
+            default=BUCKETS,
+        )
+    with f2:
+        sort_mode = st.radio(
+            "Sort by",
+            ["Score (high → low)", "Score (low → high)", "Property name"],
+            horizontal=True,
+            index=0,
+        )
+
+    results = [r for r in all_results if r["lead_info"]["priority_bucket"] in selected_buckets]
     if sort_mode == "Score (high → low)":
         results.sort(key=lambda r: r["lead_info"]["lead_score"], reverse=True)
     elif sort_mode == "Score (low → high)":
         results.sort(key=lambda r: r["lead_info"]["lead_score"])
     else:
         results.sort(key=lambda r: r["property_name"].lower())
+
+    if not results:
+        st.info("No leads match the selected priorities.")
+    else:
+        st.download_button(
+            f"Download {len(results)} lead(s) as CSV",
+            data=_results_to_df(results).to_csv(index=False).encode("utf-8-sig"),
+            file_name=f"lead_intelligence_{date.today().isoformat()}.csv",
+            mime="text/csv",
+            icon=":material/download:",
+        )
 
     for r in results:
         _render_lead_card(r)

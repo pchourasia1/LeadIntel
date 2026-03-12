@@ -398,6 +398,15 @@ def data_confidence(
 
 # ================================ Lead Score ===============================
 
+LEAD_SCORE_WEIGHTS = {
+    "account_fit": 0.35,
+    "operational_complexity": 0.25,
+    "buying_trigger": 0.20,
+    "market_context": 0.10,
+    "data_confidence": 0.10,
+}
+
+
 def lead_score(
     account_fit_score: float,
     operational_complexity_score: float,
@@ -409,12 +418,13 @@ def lead_score(
     Returns lead score in [0, 1].
     """
     
+    w = LEAD_SCORE_WEIGHTS
     score = (
-        0.35 * clamp(account_fit_score)
-        + 0.25 * clamp(operational_complexity_score)
-        + 0.20 * clamp(buying_trigger_score)
-        + 0.10 * clamp(market_context_score)
-        + 0.10 * clamp(data_confidence_score)
+        w["account_fit"] * clamp(account_fit_score)
+        + w["operational_complexity"] * clamp(operational_complexity_score)
+        + w["buying_trigger"] * clamp(buying_trigger_score)
+        + w["market_context"] * clamp(market_context_score)
+        + w["data_confidence"] * clamp(data_confidence_score)
     )
 
     return round(clamp(score), 4)
