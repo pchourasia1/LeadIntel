@@ -1,10 +1,17 @@
+import os
 import requests
 
 DEFAULT_TIMEOUT = 10
 
 def _safe_get_json(url, timeout=DEFAULT_TIMEOUT):
+    # The Census API redirects keyless requests to a "missing key" page.
+    key = os.getenv("CENSUS_API_KEY")
+    if key:
+        url = f"{url}&key={key}"
     try:
-        response = requests.get(url, timeout=timeout)
+        response = requests.get(url, timeout=timeout, allow_redirects=False)
+        if response.is_redirect:
+            return None, "census_api_key_missing_or_invalid"
         response.raise_for_status()
         data = response.json()
 
@@ -108,10 +115,15 @@ def get_census_data_w_zipcode_fallback(zip_code):
         if data and not err:
             return data, candidate, err
         
-        if i >= 0:
-            print (f"Error getting census data for zipcode: {zip_code}. Trying {int(candidate)+deltas[i+1]}...")
-        
         last_error = err
+
+        # A missing/invalid key fails the same way for every ZIP; don't try neighbours.
+        if any(e == "census_api_key_missing_or_invalid" for e in (err or {}).values()):
+            print("Census API key missing or invalid; set CENSUS_API_KEY in .env")
+            break
+
+        if i + 1 < len(deltas):
+            print(f"Error getting census data for zipcode: {candidate}. Trying {base + deltas[i+1]:05d}...")
     
     return None, None, last_error
 

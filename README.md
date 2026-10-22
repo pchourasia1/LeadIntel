@@ -120,14 +120,16 @@ Create a `.env` file in the project root (it is git-ignored):
 ```env
 GOOGLE_API_KEY=your-gemini-key
 FIRECRAWL_API_KEY=your-firecrawl-key
+CENSUS_API_KEY=your-census-key
 ```
 
 | Key | Where to get it |
 |---|---|
 | `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) → **Create API key** |
 | `FIRECRAWL_API_KEY` | [firecrawl.dev](https://www.firecrawl.dev) → Dashboard → **API Keys** |
+| `CENSUS_API_KEY` | [Census API key signup](https://api.census.gov/data/key_signup.html) (free, emailed to you; activate it from the email) |
 
-The Census APIs need no key.
+Without a Census key, leads still run but get no market-context score. Buying-trigger research uses Gemini with Google Search grounding, which may require billing enabled on your Google AI project.
 
 ### 3. Run the app
 

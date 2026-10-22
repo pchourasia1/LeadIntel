@@ -317,11 +317,16 @@ def market_context(census_data: Dict[str, Any]) -> float:
     employment_rate and occupancy_rate should be in [0, 1].
     """
 
-    housing_units = safe_float(census_data['total_housing_units'])
-    population = safe_float(census_data['population'])
-    median_income = safe_float(census_data['median_household_income'])
-    employment_rate = safe_float(census_data['employment_rate']/100.0)
-    occupancy_rate = safe_float(census_data['occupancy_rate']/100.0)
+    # No ZIP code or census lookup failed -> no market signal.
+    census_data = census_data or {}
+
+    housing_units = safe_float(census_data.get('total_housing_units'))
+    population = safe_float(census_data.get('population'))
+    median_income = safe_float(census_data.get('median_household_income'))
+    employment_rate = safe_float(census_data.get('employment_rate'))
+    employment_rate = employment_rate / 100.0 if employment_rate is not None else None
+    occupancy_rate = safe_float(census_data.get('occupancy_rate'))
+    occupancy_rate = occupancy_rate / 100.0 if occupancy_rate is not None else None
 
     # Zipcode-level housing scale.
     # 2k housing units is small/moderate
@@ -380,6 +385,7 @@ def data_confidence(
         "employment_rate",
         "occupancy_rate",
     )
+    census_data = census_data or {}
     present = sum(1 for k in expected_census_keys if census_data.get(k) not in (None, 0.0))
     census_score = present / len(expected_census_keys)
 
