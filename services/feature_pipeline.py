@@ -28,7 +28,7 @@ class FeaturePipeline:
         self._api_successes = 0
         self._api_attempts = 0
 
-        self.model = 'gemini-2.5-flash-lite'
+        self.model = 'gemini-3.5-flash-lite'
         self.llm = ChatGoogleGenerativeAI(
             model = self.model,
             temperature = 0.1,
@@ -38,7 +38,7 @@ class FeaturePipeline:
 
         # Use Non-flash-lite version for grounded tool calling
         self.llm_grounded = ChatGoogleGenerativeAI(
-            model = 'gemini-2.5-flash',
+            model = 'gemini-3.5-flash',
             temperature = 0.1,
             streaming = False,
             api_key = os.getenv("GOOGLE_API_KEY"),
@@ -47,7 +47,7 @@ class FeaturePipeline:
 
         # email llm:
         self.llm_email = ChatGoogleGenerativeAI(
-            model = 'gemini-2.5-flash',
+            model = 'gemini-3.5-flash',
             temperature = 0.1,
             streaming = False,
             api_key = os.getenv("GOOGLE_API_KEY"),
@@ -189,6 +189,11 @@ class FeaturePipeline:
                     print(f"[buying_trigger] LLM parse failed: {e}")
                     return BuyingTriggerPayload()
 
+            except Exception as e:
+                # API errors (quota, model unavailable, network) won't fix themselves on retry.
+                print(f"[buying_trigger] API call failed, skipping buying triggers: {e}")
+                return BuyingTriggerPayload()
+
         raise RuntimeError(f"unreachable: {last_err}")
 
 
@@ -196,12 +201,12 @@ class FeaturePipeline:
         with open("services/prompts/buying_trigger.md", "r") as f:
             prompt_text = f.read()
         
-        # Placeholder for the company name
-        self.managing_company = 'Elmington Residential'
-        
+        # Manager found on Apartments.com in get_account_fit_features (may be None)
+        managing_company = getattr(self, "managing_company", None) or "unknown"
+
         filled_prompt = prompt_text.format(
             today_iso = date.today().isoformat(),
-            managing_company = self.managing_company,
+            managing_company = managing_company,
             property_name = self.property_name,
             full_address = self.full_address,
         )
