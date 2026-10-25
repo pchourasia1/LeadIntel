@@ -60,8 +60,15 @@ def get_census_data(zip_code):
 
         result['employed_population'] = _to_int(row_employment.get('DP03_0004E'), 0)
         result['unemployed_population'] = _to_int(row_employment.get('DP03_0005E'), 0)
-        result['unemployment_rate'] = _to_float(row_employment.get('DP03_0005PE'), 0.0)
-        result['employment_rate'] = _to_float(row_employment.get('DP03_0004PE'), 0.0)
+        # DP03_0009PE = unemployment rate of the civilian labor force (e.g. 4.1).
+        # Employment rate is its complement. DP03_0004PE is NOT used: it is
+        # employed as a % of everyone 16+ (incl. retirees/students), ~60-70%.
+        unemployment_rate = _to_float(row_employment.get('DP03_0009PE'))
+        result['unemployment_rate'] = unemployment_rate
+        result['employment_rate'] = (
+            round(100.0 - unemployment_rate, 2) if unemployment_rate is not None else None
+        )
+        result['labor_force_participation'] = _to_float(row_employment.get('DP03_0002PE'))
         result['median_household_income'] = _to_float(row_employment.get('DP03_0062E'), 0.0)
 
     # Occupancy

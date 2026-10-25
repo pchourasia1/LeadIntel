@@ -314,7 +314,8 @@ def market_context(census_data: Dict[str, Any]) -> float:
         employment_rate
         occupancy_rate
 
-    employment_rate and occupancy_rate should be in [0, 1].
+    employment_rate and occupancy_rate arrive as percentages and are scaled to [0, 1].
+    employment_rate is the labor-force employment rate (100 - unemployment rate).
     """
 
     # No ZIP code or census lookup failed -> no market signal.
