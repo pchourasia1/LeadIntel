@@ -59,6 +59,47 @@ def property_key(source: str, property_name: str, street_address: str) -> str:
     return f"{source.lower()}::{_norm(property_name)}|{_norm(street_address)}"
 
 
+# ---------- secret redaction ----------
+
+# Scraped pages embed third-party keys (e.g. Google Maps image URLs with &key=AIza...).
+# Strip them so the cache can be committed without tripping secret scanning.
+_GOOGLE_KEY_RE = re.compile(r"AIza[0-9A-Za-z_\-]{35}")
+_SECRET_PARAM_RE = re.compile(
+    r"([?&](?:key|api_key|apikey|token|access_token|client_secret|signature)=)[^&\s)\"']{16,}",
+    re.IGNORECASE,
+)
+
+
+def redact_secrets(text: Optional[str]) -> Optional[str]:
+    if not text:
+        return text
+    text = _SECRET_PARAM_RE.sub(r"\1REDACTED", text)
+    return _GOOGLE_KEY_RE.sub("REDACTED", text)
+
+
+def redact_cache_file() -> int:
+    """Redact secrets in every cached entry already on disk. Returns entries changed."""
+    changed = 0
+    with _lock:
+        c = _load()
+        for entry in c["url_to_markdown"].values():
+            clean = redact_secrets(entry.get("markdown"))
+            if clean != entry.get("markdown"):
+                entry["markdown"] = clean
+                changed += 1
+        for entry in c["search_results"].values():
+            if not entry:
+                continue
+            for field in ("url", "title", "description"):
+                clean = redact_secrets(entry.get(field))
+                if clean != entry.get(field):
+                    entry[field] = clean
+                    changed += 1
+        if changed:
+            _save()
+    return changed
+
+
 # ---------- URL -> markdown ----------
 
 def get_markdown(url: str) -> Optional[str]:
@@ -70,7 +111,7 @@ def get_markdown(url: str) -> Optional[str]:
 def put_markdown(url: str, markdown: str) -> None:
     with _lock:
         _load()["url_to_markdown"][url] = {
-            "markdown": markdown,
+            "markdown": redact_secrets(markdown),
             "fetched_at": datetime.now(timezone.utc).isoformat(),
         }
         _save()
@@ -124,9 +165,9 @@ def put_search_result(source: str, property_name: str, street_address: str,
     payload = None
     if result:
         payload = {
-            "url":         result.get("url"),
-            "title":       result.get("title"),
-            "description": result.get("description"),
+            "url":         redact_secrets(result.get("url")),
+            "title":       redact_secrets(result.get("title")),
+            "description": redact_secrets(result.get("description")),
             "fetched_at":  datetime.now(timezone.utc).isoformat(),
         }
     with _lock:
