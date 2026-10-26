@@ -67,8 +67,10 @@ def _score_breakdown_chart(breakdown: dict) -> alt.LayerChart:
         })
     data = pd.DataFrame(rows)
 
+    # labelOverlap=False: Vega hides every other label when it thinks they collide.
     y = alt.Y("Component:N", sort=list(data["Component"]), title=None,
-              axis=alt.Axis(labelLimit=320, ticks=False, domain=False))
+              axis=alt.Axis(labelLimit=320, labelOverlap=False, labelPadding=8,
+                            ticks=False, domain=False))
     x_scale = alt.Scale(domain=[0, max(LEAD_SCORE_WEIGHTS.values()) * 100])
     tooltip = [
         alt.Tooltip("Component:N"),
@@ -88,7 +90,7 @@ def _score_breakdown_chart(breakdown: dict) -> alt.LayerChart:
         y=y,
         tooltip=tooltip,
     )
-    return (track + earned).properties(height=170).configure_axisY(grid=False)
+    return (track + earned).properties(height=alt.Step(36)).configure_axisY(grid=False)
 
 
 def _results_to_df(results: list) -> pd.DataFrame:
