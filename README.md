@@ -23,6 +23,7 @@ It is built for a leasing-automation SaaS that sells to residential property man
 - A 0–100% **lead score**, a **priority bucket** (High / Medium / Low / Needs Review) and plain-English **reasons**
 - A **score breakdown chart** on every lead showing the points each component earned out of its maximum
 - An **AI-drafted outreach email** that uses only facts that were found, with one-click **Regenerate** and **Copy**
+- A **Sources** section on every lead linking to the web pages behind its portfolio size, property type, PMS vendor and buying triggers
 
 **Working with results**
 - **Summary bar** with lead counts per bucket and the average score

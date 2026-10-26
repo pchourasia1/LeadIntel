@@ -61,8 +61,11 @@ class ZillowExtraction(BaseModel):
 
 class AccountFitLookup(BaseModel):
     manager_portfolio_size: Optional[int] = None
+    manager_portfolio_size_evidence_url: Optional[str] = None
     property_type: Optional[PropertyType] = "unknown"
+    property_type_evidence_url: Optional[str] = None
     detected_pms_vendor: Optional[str] = None
+    detected_pms_vendor_evidence_url: Optional[str] = None
 
 
 # --------------------------- Outreach Email ---------------------------

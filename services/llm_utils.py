@@ -2,6 +2,8 @@ import re
 import json
 from typing import Any, Dict, List, Optional
 
+import requests
+
 # Helper functions
 
 VALID_BUCKETS = {
@@ -41,6 +43,34 @@ def _extract_json(text: str) -> Dict[str, Any]:
     if start == -1 or end == -1 or end <= start:
         raise ValueError(f"no JSON object found in: {text[:200]}")
     return json.loads(text[start : end + 1])
+
+
+_GROUNDING_REDIRECT = "vertexaisearch.cloud.google.com/grounding-api-redirect/"
+
+
+def _resolve_evidence_url(url: Optional[str]) -> Optional[str]:
+    """
+    Grounded Gemini cites sources as short-lived Google redirect links that 404
+    after a while. Resolve them to the real page right away; drop anything that
+    isn't a usable http(s) URL.
+    """
+    if not isinstance(url, str) or not url.startswith(("http://", "https://")):
+        return None
+    if _GROUNDING_REDIRECT not in url:
+        return url
+    try:
+        resp = requests.head(url, allow_redirects=False, timeout=5)
+        location = resp.headers.get("Location")
+        if resp.is_redirect and location and location.startswith(("http://", "https://")):
+            return location
+    except requests.RequestException:
+        pass
+    return None
+
+
+def _resolve_evidence_urls(urls: Optional[List[str]]) -> List[str]:
+    resolved = [_resolve_evidence_url(u) for u in (urls or [])]
+    return list(dict.fromkeys(u for u in resolved if u))   # drop failures, keep order, dedupe
 
 
 def _normalize_bucket(bucket: Optional[str]) -> Optional[str]:

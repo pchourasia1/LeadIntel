@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -122,6 +123,42 @@ def _results_to_df(results: list) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+SOURCE_LABELS = {
+    "manager_portfolio_size": "Manager portfolio size",
+    "property_type":          "Property type",
+    "detected_pms_vendor":    "PMS vendor",
+    "ownership_change":       "Ownership change",
+    "leaseup":                "Lease-up / new construction",
+    "hiring":                 "Hiring",
+    "expansion":              "Expansion",
+    "tech_change":            "Tech change",
+}
+
+
+def _usable_url(url) -> bool:
+    # Older cache entries hold Google citation redirects, which expire (404).
+    return isinstance(url, str) and url.startswith("http") and "grounding-api-redirect" not in url
+
+
+def _render_sources(feats: dict) -> None:
+    sources = {}
+    for key, url in (feats.get("_account_fit_evidence") or {}).items():
+        if _usable_url(url):
+            sources[key] = [url]
+    for key, urls in (feats.get("_evidence") or {}).items():
+        urls = [u for u in (urls or []) if _usable_url(u)]
+        if urls:
+            sources[key] = urls
+
+    with st.expander(f"Sources ({sum(len(u) for u in sources.values())})", expanded=False):
+        if not sources:
+            st.caption("No source links saved for this lead. Tick **Refresh** to research it again.")
+            return
+        for key, urls in sources.items():
+            links = " · ".join(f"[{urlparse(u).netloc.removeprefix('www.')}]({u})" for u in urls)
+            st.markdown(f"**{SOURCE_LABELS.get(key, key)}:** {links}")
+
+
 def _render_lead_card(result: dict) -> None:
     li = result["lead_info"]
     score  = li["lead_score"]
@@ -191,6 +228,9 @@ def _render_lead_card(result: dict) -> None:
         else:
             st.caption("(no email drafted yet. Click Generate Data on this row)")
  
+
+        _render_sources(feats)
+
 
         with st.expander("Raw Features", expanded=False):
             st.json(feats, expanded=False)

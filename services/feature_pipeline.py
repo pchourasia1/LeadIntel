@@ -12,7 +12,7 @@ from schemas.pydantic_schemas import BuyingTriggerPayload
 from services.enrichment.apartments_dot_com import fetch_apartments_features
 from services.enrichment.zillow import fetch_zillow_features
 from services.enrichment.account_fit_lookup import fetch_account_fit_lookup
-from services.llm_utils import _content_to_text, _extract_json, _normalize_bucket
+from services.llm_utils import _content_to_text, _extract_json, _normalize_bucket, _resolve_evidence_urls
 
 from clients import lead_cache
 
@@ -106,6 +106,9 @@ class FeaturePipeline:
         "manager_portfolio_size": lookup.get("manager_portfolio_size"),
         "property_type": lookup.get("property_type"),
         "detected_pms_vendor": lookup.get("detected_pms_vendor"),
+
+        # Pass-through for the lead card's Sources section
+        "_account_fit_evidence": lookup.get("evidence") or {},
         }
         
 
@@ -135,12 +138,13 @@ class FeaturePipeline:
             "tech_change_days_ago":      p.tech_change.days_ago,
             "evidence_confidence":       confidence,
             # Pass-through for reason codes / outreach email
+            # Resolved now because Google's citation redirect links expire.
             "_evidence": {
-                "ownership_change": p.ownership_change.evidence_urls,
-                "leaseup":          p.leaseup.evidence_urls,
-                "hiring":           p.hiring.evidence_urls,
-                "expansion":        p.expansion.evidence_urls,
-                "tech_change":      p.tech_change.evidence_urls,
+                "ownership_change": _resolve_evidence_urls(p.ownership_change.evidence_urls),
+                "leaseup":          _resolve_evidence_urls(p.leaseup.evidence_urls),
+                "hiring":           _resolve_evidence_urls(p.hiring.evidence_urls),
+                "expansion":        _resolve_evidence_urls(p.expansion.evidence_urls),
+                "tech_change":      _resolve_evidence_urls(p.tech_change.evidence_urls),
             },
         }
 
