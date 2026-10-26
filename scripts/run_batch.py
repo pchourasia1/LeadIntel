@@ -17,7 +17,7 @@ def _resolve_zipcode(full_address: str, zipcode: Any) -> Any:
         return zipcode
     try:
         time.sleep(0.05)
-        loc = Nominatim(user_agent="elise_gtm", timeout=5).geocode(
+        loc = Nominatim(user_agent="leadintel", timeout=5).geocode(
             full_address, addressdetails=True
         )
         if loc:

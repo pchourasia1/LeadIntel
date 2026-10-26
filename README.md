@@ -2,7 +2,7 @@
 
 LeadIntel turns a list of apartment-property leads into a ranked, explained sales pipeline. For every lead it researches the property across the web, scores how promising it is, explains *why*, and drafts a personalized outreach email, all in a Streamlit app.
 
-It is built for a leasing-automation SaaS that sells to residential property managers (the email prompts are written for an Sales Development Representative).
+It is built for a leasing-automation SaaS that sells to residential property managers. Outreach emails are written as a Sales Development Representative (SDR) at a configurable company; see [Company settings](#company-settings).
 
 <p align="center">
   <img src="assets/demo.gif" alt="LeadIntel demo" width="800"/>
@@ -142,6 +142,24 @@ CENSUS_API_KEY=your-census-key
 
 The app reads `.env` at startup, so restart it after changing a key.
 
+### Company settings
+
+Outreach emails are written as a sales rep (SDR) at your company, and the "Why this score" reasons refer to it by name. Set these in `.env` (all optional):
+
+```env
+COMPANY_NAME=Acme Leasing
+COMPANY_PITCH=an AI leasing assistant that answers prospects 24/7 and books tours
+SENDER_NAME=Jordan
+```
+
+| Setting | Used in | Default |
+|---|---|---|
+| `COMPANY_NAME` | Email prompt and score reasons | `EliseAI` |
+| `COMPANY_PITCH` | Email prompt: "You are an SDR at {name}, {pitch}." | a SaaS that automates leasing communication for residential property managers (24/7 prospect follow-up, tour scheduling, lead nurturing) |
+| `SENDER_NAME` | Email sign-off | `Prakash` |
+
+Defaults live in [`settings.py`](settings.py). Reasons update on the next **Run**; cached emails keep the old wording until you **Regenerate** or **Refresh** them.
+
 ### 3. Run the app
 
 From the project root:
@@ -213,6 +231,7 @@ python -c "from clients import scrape_cache; print(scrape_cache.redact_cache_fil
 
 ```
 LeadIntel/
+├── settings.py                     # Company name, pitch and sender (overridable in .env)
 ├── app/main.py                     # Streamlit UI: lead table, summary, filter, cards, chart, CSV export
 ├── scripts/
 │   ├── run_batch.py                # Per-lead pipeline (process_row, redraft_email, run_batch)

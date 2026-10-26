@@ -1,6 +1,8 @@
 import math
 from typing import Optional, Dict, Any
 
+import settings
+
 def clamp(x: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(x, high))
 
@@ -481,6 +483,7 @@ def generate_reason(
     """
 
     reasons: list[str] = []
+    company = settings.company_name()
 
     # -------- Account fit --------
     uc = safe_float(unit_count)
@@ -488,11 +491,11 @@ def generate_reason(
         if uc >= 500:
             reasons.append(
                 f"Large property with ~{int(uc)} units — strong fit for "
-                "EliseAI's high-volume leasing automation."
+                f"{company}'s high-volume leasing automation."
             )
         elif uc >= 100:
             reasons.append(
-                f"Mid-sized property (~{int(uc)} units) — typical EliseAI "
+                f"Mid-sized property (~{int(uc)} units) — typical {company} "
                 "sweet spot."
             )
         elif uc >= 20:
@@ -513,11 +516,11 @@ def generate_reason(
         pretty = ptype.replace("_", " ")
         if ptype in ("multifamily", "student_housing", "affordable_housing", "senior_housing", "single_family_home"):
             reasons.append(
-                f"Property type '{pretty}' aligns directly with EliseAI's core ICP."
+                f"Property type '{pretty}' aligns directly with {company}'s core ICP."
             )
         elif ptype in ("commercial_office", "hotel"):
             reasons.append(
-                f"Property type '{pretty}' is outside EliseAI's typical ICP "
+                f"Property type '{pretty}' is outside {company}'s typical ICP "
                 "— qualify carefully."
             )
 
@@ -526,7 +529,7 @@ def generate_reason(
     if al is not None and al >= 10:
         reasons.append(
             f"~{int(al)} active listings — meaningful leasing pressure that "
-            "EliseAI shortens with 24/7 prospect follow-up."
+            f"{company} can help relieve."
         )
 
     if detected_pms_vendor:
@@ -598,7 +601,7 @@ def generate_reason(
             elif occ < 85:
                 reasons.append(
                     f"Lower local occupancy ({occ:.1f}%) — suggests leasing "
-                    "pressure where EliseAI can lift conversion."
+                    f"pressure where {company} can lift conversion."
                 )
 
     if not reasons:
