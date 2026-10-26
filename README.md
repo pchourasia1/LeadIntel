@@ -2,7 +2,7 @@
 
 LeadIntel turns a list of apartment-property leads into a ranked, explained sales pipeline. For every lead it researches the property across the web, scores how promising it is, explains *why*, and drafts a personalized outreach email, all in a Streamlit app.
 
-It is built for a leasing-automation SaaS that sells to residential property managers (the email prompts are written for an SDR at EliseAI).
+It is built for a leasing-automation SaaS that sells to residential property managers (the email prompts are written for an Sales Development Representative).
 
 <p align="center">
   <img src="assets/demo.gif" alt="LeadIntel demo" width="800"/>
