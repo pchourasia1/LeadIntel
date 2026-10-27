@@ -155,7 +155,7 @@ SENDER_NAME=Jordan
 
 | Setting | Used in | Default |
 |---|---|---|
-| `COMPANY_NAME` | Email prompt and score reasons | `EliseAI` |
+| `COMPANY_NAME` | Email prompt and score reasons | `My Lease AI` |
 | `COMPANY_PITCH` | Email prompt: "You are an SDR at {name}, {pitch}." | a SaaS that automates leasing communication for residential property managers (24/7 prospect follow-up, tour scheduling, lead nurturing) |
 | `SENDER_NAME` | Email sign-off | `Prakash` |
 

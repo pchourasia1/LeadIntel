@@ -4,7 +4,7 @@ Read at call time (not import time) because app/main.py loads .env after its imp
 """
 import os
 
-DEFAULT_COMPANY_NAME = "EliseAI"
+DEFAULT_COMPANY_NAME = "My Lease AI"
 DEFAULT_COMPANY_PITCH = (
     "a SaaS that automates leasing communication for residential property "
     "managers (24/7 prospect follow-up, tour scheduling, lead nurturing)"
