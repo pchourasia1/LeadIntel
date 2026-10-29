@@ -8,6 +8,16 @@ It is built for a leasing-automation SaaS that sells to residential property man
   <img src="assets/demo.gif" alt="LeadIntel demo" width="800"/>
 </p>
 
+## Demo video
+
+<p align="center">
+  <a href="https://youtu.be/PZgMH1USQWE">
+    <img src="https://img.youtube.com/vi/PZgMH1USQWE/maxresdefault.jpg" alt="Watch the LeadIntel demo on YouTube" width="800"/>
+  </a>
+</p>
+
+▶️ [Watch the full demo on YouTube](https://youtu.be/PZgMH1USQWE)
+
 ---
 
 ## Features
